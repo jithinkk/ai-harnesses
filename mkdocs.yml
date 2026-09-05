@@ -1,0 +1,95 @@
+site_name: AI Harnesses
+site_description: >-
+  A DIY exploration of AI agent harnesses and trade-off analysis --
+  starting with LangChain's deepagents, compared side by side against
+  hand-built LangGraph in the agentic-design-patterns repo.
+site_url: https://jithinkk.github.io/ai-harnesses/
+repo_url: https://github.com/jithinkk/ai-harnesses
+repo_name: jithinkk/ai-harnesses
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    logo: material/graph-outline
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.tracking
+    - navigation.instant
+    - navigation.instant.progress
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - content.action.edit
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Harnesses and Loops: harnesses-and-loops.md
+  - deepagents: deepagents.md
+
+plugins:
+  - search
+  - include-markdown:
+      rewrite_relative_urls: true
+
+# mkdocs-material lazy-loads Mermaid from unpkg.com at render time, which is
+# blocked or unreliable on some networks (and was silently failing on GitHub
+# Pages). Preloading it here from jsdelivr makes the theme's runtime check
+# (`typeof mermaid == "undefined"`) find it already defined and skip the
+# unpkg fetch.
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jithinkk/ai-harnesses
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
