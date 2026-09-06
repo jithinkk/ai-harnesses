@@ -37,6 +37,8 @@ jobs:
         include:
           - group: openai-agents
             path: openai_agents_harness
+          - group: agent-framework
+            path: agent_framework_harness
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

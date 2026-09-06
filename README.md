@@ -27,6 +27,11 @@ integration, evals) — see
   patterns, re-expressed in [the OpenAI Agents SDK](https://github.com/openai/openai-agents-python)
   — a different runtime entirely, not built on LangGraph. Fully offline
   and tested.
+- [`agent_framework_harness/`](agent_framework_harness/) — the same two
+  patterns, re-expressed in
+  [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+  — its own `Workflow` executor/edge runtime and its own Magentic
+  multi-agent orchestration. Fully offline and tested.
 
 ## Quick start
 
@@ -92,6 +97,8 @@ ai-harnesses/
 ├── deepagents_harness/       # patterns under LangChain's deepagents
 │   └── tests/
 ├── openai_agents_harness/    # patterns under the OpenAI Agents SDK
+│   └── tests/
+├── agent_framework_harness/  # patterns under Microsoft Agent Framework
 │   └── tests/
 ├── shared/                   # vendored LLM factory + fake model + basic tools
 │   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness

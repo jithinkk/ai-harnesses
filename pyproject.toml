@@ -17,6 +17,9 @@ dependencies = [
 ]
 
 [dependency-groups]
+agent-framework = [
+    "agent-framework>=1.17.0",
+]
 dev = [
     "pytest>=8.3.0",
 ]
@@ -29,9 +32,19 @@ openai-agents = [
     "openai-agents>=0.22.0",
 ]
 
+[tool.uv]
+conflicts = [
+    [
+        { group = "strands" },
+        { group = "agent-framework" },
+        { group = "dapr-agents" },
+        { group = "openai-agents" },
+    ],
+]
+
 [tool.pytest.ini_options]
-testpaths = ["deepagents_harness", "openai_agents_harness", "shared"]
+testpaths = ["deepagents_harness", "openai_agents_harness", "agent_framework_harness", "shared"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["shared*", "deepagents_harness*", "openai_agents_harness*"]
+include = ["shared*", "deepagents_harness*", "openai_agents_harness*", "agent_framework_harness*"]
