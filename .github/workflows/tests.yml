@@ -41,6 +41,9 @@ jobs:
             path: agent_framework_harness
           - group: strands
             path: strands_harness
+          - group: dapr-agents
+            path: dapr_agents_harness
+            needs_dapr: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -57,5 +60,36 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev --group ${{ matrix.group }} --locked
 
-      - name: Run tests
+      # dapr-agents is this repo's one accepted exception to "zero extra infra" --
+      # its actual differentiator (durable, sidecar-backed workflow state) can't be
+      # exercised without a real Dapr sidecar. See dapr_agents_harness/README.md.
+      - if: matrix.needs_dapr
+        name: Install Dapr CLI (pinned, no version-lookup dependency)
+        run: |
+          wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash -s 1.15.0
+
+      - if: matrix.needs_dapr
+        name: Initialize Dapr runtime (slim, no Docker)
+        run: dapr init --slim --runtime-version 1.15.4
+
+      - if: matrix.needs_dapr
+        name: Start placement and scheduler (slim mode has no default control plane)
+        run: |
+          mkdir -p /tmp/dapr-scheduler-data
+          nohup /root/.dapr/bin/scheduler \
+            --etcd-data-dir /tmp/dapr-scheduler-data --port 50006 --healthz-port 8091 \
+            --listen-address 127.0.0.1 --override-broadcast-host-port 127.0.0.1:50006 \
+            --enable-metrics=false > /tmp/scheduler.log 2>&1 &
+          nohup /root/.dapr/bin/placement --port 50005 --healthz-port 8092 --enable-metrics=false > /tmp/placement.log 2>&1 &
+          sleep 5
+
+      - if: matrix.needs_dapr
+        name: Run tests under the Dapr sidecar
+        run: |
+          dapr run --app-id dapr-agents-harness-test \
+            --resources-path dapr_agents_harness/components \
+            -- uv run --no-sync pytest dapr_agents_harness -v
+
+      - if: ${{ !matrix.needs_dapr }}
+        name: Run tests
         run: uv run --no-sync pytest ${{ matrix.path }} -v

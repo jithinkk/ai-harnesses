@@ -29,16 +29,22 @@ framework supplies for free and what it costs you.
 
     [:octicons-arrow-right-24: Read more](harnesses-and-loops.md)
 
--   :material-source-repository:{ .lg .middle } **Under deepagents**
-
-    ---
-
-    Two patterns re-expressed in LangChain's `deepagents` — what a
-    framework supplies for free and what it costs you.
-
-    [:octicons-arrow-right-24: Read more](deepagents.md)
-
 </div>
+
+Five harnesses re-express the same two patterns — `orchestrator_workers`
+and `human_in_the_loop` — through five different frameworks:
+
+| Harness | Summary |
+|---|---|
+| [deepagents](deepagents.md) | LangChain's agent-harness library, built on LangGraph |
+| [OpenAI Agents SDK](openai-agents.md) | OpenAI's own runtime — handoffs, guardrails, tool-approval |
+| [Microsoft Agent Framework](agent-framework.md) | Workflow executors/edges + Magentic multi-agent orchestration |
+| [Strands Agents SDK](strands.md) | AWS's code-first framework — Agents-as-Tools, `HumanInTheLoop` |
+| [Dapr Agents](dapr-agents.md) | Built on Dapr's durable Workflow engine — needs a real sidecar |
+
+[:octicons-arrow-right-24: See the full comparison](comparison.md) — runtime
+substrate, delegation mechanism, HITL mechanism, and offline-fake strategy,
+side by side.
 
 ## Quick start
 

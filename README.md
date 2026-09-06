@@ -36,6 +36,11 @@ integration, evals) — see
   re-expressed in [the Strands Agents SDK](https://github.com/strands-agents/sdk-python)
   — AWS's code-first agent framework, using its Agents-as-Tools pattern
   and its `HumanInTheLoop` intervention. Fully offline and tested.
+- [`dapr_agents_harness/`](dapr_agents_harness/) — the same two patterns,
+  re-expressed in [Dapr Agents](https://github.com/dapr/dapr-agents) — built
+  on Dapr's durable Workflow engine. The one exception to "fully offline":
+  it needs a real local Dapr sidecar (see its README) since durable,
+  sidecar-backed workflow state is the whole point of using it.
 
 ## Quick start
 
@@ -85,7 +90,10 @@ tested with no API key" guarantee:
 1. It must be drivable **offline** by a stand-in model. For anything built
    on LangChain this means accepting a `BaseChatModel`, so
    `shared/llm/fake.py`'s `FakeChatModel` drops in. A harness that can only
-   talk to a live endpoint belongs in docs, not here.
+   talk to a live endpoint belongs in docs, not here. (`dapr_agents_harness`
+   is this repo's one accepted exception — not a live endpoint, but a real
+   local Dapr sidecar, required to exercise durable workflow state honestly.
+   See its README for why that was worth the exception.)
 2. Implement only the patterns it expresses **natively**, and document the
    non-fits — those explain more than the fits do.
 3. Follow the existing module conventions: `build_agent()` alongside a
@@ -105,6 +113,9 @@ ai-harnesses/
 ├── agent_framework_harness/  # patterns under Microsoft Agent Framework
 │   └── tests/
 ├── strands_harness/          # patterns under the Strands Agents SDK
+│   └── tests/
+├── dapr_agents_harness/      # patterns under Dapr Agents (needs a real sidecar; see its README)
+│   ├── components/           # Dapr component config (in-memory, actor-capable state store)
 │   └── tests/
 ├── shared/                   # vendored LLM factory + fake model + basic tools
 │   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness
