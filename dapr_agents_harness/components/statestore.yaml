@@ -1,0 +1,16 @@
+# In-memory state store, marked as the actor state store Dapr Workflow needs
+# for durability (workflow/actor state, reminders-as-scheduler-jobs). No
+# Redis/Postgres/Docker required beyond the Dapr CLI + runtime themselves --
+# this is the one component this harness needs to run its real, durable
+# workflow engine (see dapr_agents_harness/README.md for why that's a
+# deliberate exception to this repo's usual "zero extra infra" bar).
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: statestore
+spec:
+  type: state.in-memory
+  version: v1
+  metadata:
+    - name: actorStateStore
+      value: "true"

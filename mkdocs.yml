@@ -50,7 +50,12 @@ theme:
 nav:
   - Home: index.md
   - Harnesses and Loops: harnesses-and-loops.md
+  - Framework Comparison: comparison.md
   - deepagents: deepagents.md
+  - OpenAI Agents SDK: openai-agents.md
+  - Microsoft Agent Framework: agent-framework.md
+  - Strands Agents SDK: strands.md
+  - Dapr Agents: dapr-agents.md
 
 plugins:
   - search

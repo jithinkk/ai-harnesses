@@ -23,6 +23,24 @@ integration, evals) — see
   [deepagents](https://github.com/langchain-ai/deepagents), side by side
   with their vanilla equivalents in `agentic-design-patterns`. Fully
   offline and tested.
+- [`openai_agents_harness/`](openai_agents_harness/) — the same two
+  patterns, re-expressed in [the OpenAI Agents SDK](https://github.com/openai/openai-agents-python)
+  — a different runtime entirely, not built on LangGraph. Fully offline
+  and tested.
+- [`agent_framework_harness/`](agent_framework_harness/) — the same two
+  patterns, re-expressed in
+  [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+  — its own `Workflow` executor/edge runtime and its own Magentic
+  multi-agent orchestration. Fully offline and tested.
+- [`strands_harness/`](strands_harness/) — the same two patterns,
+  re-expressed in [the Strands Agents SDK](https://github.com/strands-agents/sdk-python)
+  — AWS's code-first agent framework, using its Agents-as-Tools pattern
+  and its `HumanInTheLoop` intervention. Fully offline and tested.
+- [`dapr_agents_harness/`](dapr_agents_harness/) — the same two patterns,
+  re-expressed in [Dapr Agents](https://github.com/dapr/dapr-agents) — built
+  on Dapr's durable Workflow engine. The one exception to "fully offline":
+  it needs a real local Dapr sidecar (see its README) since durable,
+  sidecar-backed workflow state is the whole point of using it.
 
 ## Quick start
 
@@ -55,9 +73,14 @@ pasted, untestable snippets would be quietly wrong within months — so that
 guidance lives in prose, which can say "check the current docs," and not in
 this repo, which can't be CI-verified.
 
-**Only one framework per harness.** Nobody re-implements a single workflow
-across three frameworks in production; they pick one. A second framework
-would multiply maintenance without changing the lesson.
+**The same two patterns, across every framework here — on purpose.** A
+single harness picking one framework mirrors production, where nobody
+re-implements a workflow across three frameworks; they pick one. A *repo*
+comparing frameworks needs the opposite move: hold the pattern fixed and
+vary the machinery underneath it. `orchestrator_workers` and
+`human_in_the_loop` were chosen because they're the two patterns every
+framework surveyed here expresses natively — see each harness's own
+README for the ones that don't fit, and why.
 
 ## Adding another harness
 
@@ -67,7 +90,10 @@ tested with no API key" guarantee:
 1. It must be drivable **offline** by a stand-in model. For anything built
    on LangChain this means accepting a `BaseChatModel`, so
    `shared/llm/fake.py`'s `FakeChatModel` drops in. A harness that can only
-   talk to a live endpoint belongs in docs, not here.
+   talk to a live endpoint belongs in docs, not here. (`dapr_agents_harness`
+   is this repo's one accepted exception — not a live endpoint, but a real
+   local Dapr sidecar, required to exercise durable workflow state honestly.
+   See its README for why that was worth the exception.)
 2. Implement only the patterns it expresses **natively**, and document the
    non-fits — those explain more than the fits do.
 3. Follow the existing module conventions: `build_agent()` alongside a
@@ -80,12 +106,21 @@ tested with no API key" guarantee:
 
 ```
 ai-harnesses/
-├── deepagents_harness/   # patterns under LangChain's deepagents
+├── deepagents_harness/       # patterns under LangChain's deepagents
 │   └── tests/
-├── shared/               # vendored LLM factory + fake model + basic tools
-│   ├── llm/
+├── openai_agents_harness/    # patterns under the OpenAI Agents SDK
+│   └── tests/
+├── agent_framework_harness/  # patterns under Microsoft Agent Framework
+│   └── tests/
+├── strands_harness/          # patterns under the Strands Agents SDK
+│   └── tests/
+├── dapr_agents_harness/      # patterns under Dapr Agents (needs a real sidecar; see its README)
+│   ├── components/           # Dapr component config (in-memory, actor-capable state store)
+│   └── tests/
+├── shared/                   # vendored LLM factory + fake model + basic tools
+│   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness
 │   └── tools/
-├── docs/                 # mkdocs site (Harnesses and Loops essay, deepagents)
+├── docs/                     # mkdocs site (Harnesses and Loops essay, one page per harness)
 └── mkdocs.yml
 ```
 

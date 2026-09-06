@@ -1,0 +1,88 @@
+import asyncio
+import json
+
+from dapr_agents.workflow.runners.agent import AgentRunner
+
+from dapr_agents_harness.human_in_the_loop import build_agent as build_hitl_agent
+from dapr_agents_harness.orchestrator_workers import build_agent as build_ow_agent
+
+DEFAULT_TASK = "Write a short product report covering pricing, onboarding, and support quality."
+DEFAULT_MESSAGE_TASK = "Send a message to Alice: the report is ready."
+
+
+def run_orchestrator_workers(task: str = DEFAULT_TASK) -> dict:
+    """Dynamic fan-out to the `research` tool, run as a real durable workflow."""
+    agent = build_ow_agent()
+    runner = AgentRunner()
+    output = runner.run_sync(agent, {"task": task})
+    final_output = json.loads(output)["content"] if output else ""
+    return {"final_output": final_output, "result": output}
+
+
+async def _run_human_in_the_loop_async(task: str, approve: bool) -> dict:
+    agent = build_hitl_agent()
+    runner = AgentRunner()
+
+    instance_id = await runner.run(agent, {"task": task}, wait=False)
+
+    pending = None
+    for _ in range(30):
+        await asyncio.sleep(1)
+        approvals = agent.list_pending_approvals()
+        if approvals:
+            pending = approvals[0]
+            break
+
+    if pending is None:
+        state = runner.wait_for_workflow_completion(instance_id)
+        output = state.serialized_output if state else None
+        return {"interrupted": False, "result": output}
+
+    reason = None if approve else "Rejected by human review."
+    agent.raise_approval_event(instance_id, pending["approval_request_id"], approved=approve, reason=reason)
+
+    state = runner.wait_for_workflow_completion(instance_id)
+    output = state.serialized_output if state else None
+    return {
+        "interrupted": True,
+        "pending": pending,
+        "approved": approve,
+        "result": output,
+    }
+
+
+def run_human_in_the_loop(task: str = DEFAULT_MESSAGE_TASK, approve: bool = True) -> dict:
+    """Runs to completion, auto-resolving any approval pause.
+
+    A real UI would surface `pending` to a human (via pub/sub or the `GET
+    /hitl/approvals` HTTP endpoint in `serve()` mode) and only then call
+    `agent.raise_approval_event(...)`. Unlike the checkpointer-based harnesses, the
+    pause here is a real suspended durable workflow instance, not an in-memory one --
+    `instance_id` is what a separate process would need to resume it, the same role
+    `thread_id` plays for the LangGraph-based harnesses.
+    """
+    return asyncio.run(_run_human_in_the_loop_async(task, approve))
+
+
+def main(task: str = DEFAULT_TASK) -> dict:
+    return run_orchestrator_workers(task)
+
+
+if __name__ == "__main__":
+    import sys
+
+    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
+
+    print("=== orchestrator_workers under Dapr Agents ===\n")
+    report = run_orchestrator_workers(task)
+    print(report["final_output"])
+
+    print("\n=== human_in_the_loop under Dapr Agents ===\n")
+    outcome = run_human_in_the_loop()
+    if not outcome["interrupted"]:
+        print("No approval needed for this request.")
+    else:
+        pending = outcome["pending"]
+        print(f"Paused for approval: {pending['tool_name']} {pending['tool_arguments']}")
+        print(f"Auto-{'approved' if outcome['approved'] else 'rejected'} for this demo run.\n")
+        print(json.loads(outcome["result"])["content"] if outcome["result"] else "")
