@@ -1,9 +1,11 @@
 import asyncio
+import json
 
 from agents import Runner
 
 from openai_agents_harness.human_in_the_loop import build_agent as build_hitl_agent
 from openai_agents_harness.orchestrator_workers import build_agent as build_ow_agent
+from shared.trace import HitlTrace, OrchestratorTrace, run_demo, subtasks_from_report
 
 DEFAULT_TASK = "Write a short product report covering pricing, onboarding, and support quality."
 DEFAULT_MESSAGE_TASK = "Send a message to Alice: the report is ready."
@@ -49,21 +51,48 @@ def main(task: str = DEFAULT_TASK) -> dict:
     return run_orchestrator_workers(task)
 
 
+def _as_dict(arguments) -> dict:
+    if isinstance(arguments, dict):
+        return arguments
+    try:
+        return json.loads(arguments)
+    except (TypeError, ValueError):
+        return {"arguments": arguments}
+
+
+def describe_orchestrator_workers(task: str = DEFAULT_TASK) -> OrchestratorTrace:
+    final = run_orchestrator_workers(task)["final_output"]
+    return OrchestratorTrace(
+        harness="openai-agents",
+        fanout_mechanism="Agent.as_tool() — specialist agent wrapped as a callable tool, one call per subtask",
+        subtasks=subtasks_from_report(final),
+        isolation="as_tool() invokes the subagent with generated input in its own run",
+        final_report=final,
+    )
+
+
+def describe_human_in_the_loop() -> HitlTrace:
+    outcome = run_human_in_the_loop()
+    pending = outcome.get("pending")
+    return HitlTrace(
+        harness="openai-agents",
+        gate_mechanism="needs_approval on the tool → RunResult.interruptions (ToolApprovalItem)",
+        gated_tool=getattr(pending, "tool_name", "") if outcome["interrupted"] else "",
+        gated_args=_as_dict(getattr(pending, "arguments", {})) if outcome["interrupted"] else {},
+        interrupted=outcome["interrupted"],
+        approved=outcome.get("approved", False),
+        resume_mechanism="RunState.approve()/.reject(), then re-run Runner.run(agent, state)",
+        final_text=getattr(outcome["result"], "final_output", ""),
+        durable=False,
+    )
+
+
 if __name__ == "__main__":
     import sys
 
-    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
-
-    print("=== orchestrator_workers under the OpenAI Agents SDK ===\n")
-    report = run_orchestrator_workers(task)
-    print(report["final_output"])
-
-    print("\n=== human_in_the_loop under the OpenAI Agents SDK ===\n")
-    outcome = run_human_in_the_loop()
-    if not outcome["interrupted"]:
-        print("No approval needed for this request.")
-    else:
-        pending = outcome["pending"]
-        print(f"Paused for approval: {pending.tool_name} {pending.arguments}")
-        print(f"Auto-{'approved' if outcome['approved'] else 'rejected'} for this demo run.\n")
-        print(outcome["result"].final_output)
+    run_demo(
+        sys.argv[1:],
+        DEFAULT_TASK,
+        describe_ow=describe_orchestrator_workers,
+        describe_hitl=describe_human_in_the_loop,
+    )

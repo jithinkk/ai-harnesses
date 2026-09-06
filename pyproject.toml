@@ -31,6 +31,14 @@ docs = [
     "mkdocs-material>=9.7.7",
     "mkdocs-include-markdown-plugin>=7.3.0",
 ]
+# `--otel` on any run.py / compare.py only. Traceloop's OpenLLMetry SDK
+# emits OpenTelemetry GenAI spans; shared/obs.py wires them to a console
+# exporter. Richest for the LangGraph-based deepagents harness; the other
+# frameworks emit their own native OTel (see docs/observability.md).
+# Not in the conflict set below -- it composes with any harness group.
+otel = [
+    "traceloop-sdk>=0.40.0",
+]
 openai-agents = [
     "openai-agents>=0.22.0",
 ]

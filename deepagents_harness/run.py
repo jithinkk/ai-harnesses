@@ -6,6 +6,7 @@ from langgraph.types import Command  # noqa: E402
 
 from deepagents_harness.human_in_the_loop import build_agent as build_hitl_agent  # noqa: E402
 from deepagents_harness.orchestrator_workers import build_agent as build_ow_agent  # noqa: E402
+from shared.trace import HitlTrace, OrchestratorTrace, run_demo  # noqa: E402
 
 DEFAULT_TASK = "Write a short product report covering pricing, onboarding, and support quality."
 DEFAULT_MESSAGE_TASK = "Send a message to Alice: the report is ready."
@@ -60,30 +61,48 @@ def main(task: str = DEFAULT_TASK) -> dict:
     return run_orchestrator_workers(task)
 
 
+def describe_orchestrator_workers(task: str = DEFAULT_TASK) -> OrchestratorTrace:
+    """Adapt deepagents' LangGraph state into the shared trace vocabulary."""
+    report = run_orchestrator_workers(task)
+    delegated = [
+        call["args"].get("description", "")
+        for m in report["messages"]
+        for call in (getattr(m, "tool_calls", None) or [])
+        if call["name"] == "task"
+    ]
+    final = next((m.content for m in reversed(report["messages"]) if m.content), "")
+    return OrchestratorTrace(
+        harness="deepagents",
+        fanout_mechanism="built-in `task` tool — model emits one call per subtask",
+        subtasks=delegated,
+        isolation="each `task` runs statelessly in a fresh context window",
+        final_report=final,
+    )
+
+
+def describe_human_in_the_loop() -> HitlTrace:
+    outcome = run_human_in_the_loop()
+    requested = outcome["pending"]["action_requests"][0] if outcome["interrupted"] else {}
+    final = next((m.content for m in reversed(outcome["result"]["messages"]) if m.content), "")
+    return HitlTrace(
+        harness="deepagents",
+        gate_mechanism='interrupt_on={"send_message": True} — LangGraph interrupt() + a checkpointer',
+        gated_tool=requested.get("name", ""),
+        gated_args=requested.get("args", {}),
+        interrupted=outcome["interrupted"],
+        approved=outcome.get("approved", False),
+        resume_mechanism='separate invoke(Command(resume={"decisions": [{"type": "approve"}]}))',
+        final_text=final,
+        durable=False,
+    )
+
+
 if __name__ == "__main__":
     import sys
 
-    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
-
-    print("=== orchestrator_workers under deepagents ===\n")
-    report = run_orchestrator_workers(task)
-    for message in report["messages"]:
-        role = message.__class__.__name__.replace("Message", "")
-        if getattr(message, "tool_calls", None):
-            delegated = ", ".join(call["args"].get("description", "") for call in message.tool_calls)
-            print(f"[{role}] delegating to subagents: {delegated}")
-        elif message.content:
-            print(f"[{role}] {message.content}")
-
-    print("\n=== human_in_the_loop under deepagents ===\n")
-    outcome = run_human_in_the_loop()
-    if not outcome["interrupted"]:
-        print("No approval needed for this request.")
-    else:
-        requested = outcome["pending"]["action_requests"][0]
-        print(f"Paused for approval: {requested['name']} {requested['args']}")
-        print(f"Auto-{'approved' if outcome['approved'] else 'rejected'} for this demo run.\n")
-        for message in outcome["result"]["messages"]:
-            role = message.__class__.__name__.replace("Message", "")
-            if message.content:
-                print(f"[{role}] {message.content}")
+    run_demo(
+        sys.argv[1:],
+        DEFAULT_TASK,
+        describe_ow=describe_orchestrator_workers,
+        describe_hitl=describe_human_in_the_loop,
+    )
