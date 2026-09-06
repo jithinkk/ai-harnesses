@@ -1,9 +1,11 @@
 import asyncio
+import json
 
 from agent_framework import AgentSession, Message
 
 from agent_framework_harness.human_in_the_loop import build_agent as build_hitl_agent
 from agent_framework_harness.orchestrator_workers import build_agent as build_ow_workflow
+from shared.trace import HitlTrace, OrchestratorTrace, run_demo, subtasks_from_report
 
 DEFAULT_TASK = "Write a short product report covering pricing, onboarding, and support quality."
 DEFAULT_MESSAGE_TASK = "Send a message to Alice: the report is ready."
@@ -56,21 +58,48 @@ def main(task: str = DEFAULT_TASK) -> dict:
     return run_orchestrator_workers(task)
 
 
+def _as_dict(arguments) -> dict:
+    if isinstance(arguments, dict):
+        return arguments
+    try:
+        return json.loads(arguments)
+    except (TypeError, ValueError):
+        return {"arguments": arguments}
+
+
+def describe_orchestrator_workers(task: str = DEFAULT_TASK) -> OrchestratorTrace:
+    final = run_orchestrator_workers(task)["final_output"]
+    return OrchestratorTrace(
+        harness="agent-framework",
+        fanout_mechanism="Magentic orchestration — a manager decides who acts next each round via a progress ledger",
+        subtasks=subtasks_from_report(final),
+        isolation="each researcher round runs as its own participant turn",
+        final_report=final,
+    )
+
+
+def describe_human_in_the_loop() -> HitlTrace:
+    outcome = run_human_in_the_loop()
+    call = outcome["pending"].function_call if outcome["interrupted"] else None
+    return HitlTrace(
+        harness="agent-framework",
+        gate_mechanism="RequestInfoExecutor pause on a function_approval_request",
+        gated_tool=getattr(call, "name", "") if call else "",
+        gated_args=_as_dict(getattr(call, "arguments", {})) if call else {},
+        interrupted=outcome["interrupted"],
+        approved=outcome.get("approved", False),
+        resume_mechanism="external response threaded back through the same AgentSession, then agent.run(...) again",
+        final_text=getattr(outcome["result"], "text", ""),
+        durable=False,
+    )
+
+
 if __name__ == "__main__":
     import sys
 
-    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
-
-    print("=== orchestrator_workers under Microsoft Agent Framework ===\n")
-    report = run_orchestrator_workers(task)
-    print(report["final_output"])
-
-    print("\n=== human_in_the_loop under Microsoft Agent Framework ===\n")
-    outcome = run_human_in_the_loop()
-    if not outcome["interrupted"]:
-        print("No approval needed for this request.")
-    else:
-        call = outcome["pending"].function_call
-        print(f"Paused for approval: {call.name} {call.arguments}")
-        print(f"Auto-{'approved' if outcome['approved'] else 'rejected'} for this demo run.\n")
-        print(outcome["result"].text)
+    run_demo(
+        sys.argv[1:],
+        DEFAULT_TASK,
+        describe_ow=describe_orchestrator_workers,
+        describe_hitl=describe_human_in_the_loop,
+    )

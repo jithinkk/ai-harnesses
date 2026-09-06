@@ -51,6 +51,7 @@ nav:
   - Home: index.md
   - Harnesses and Loops: harnesses-and-loops.md
   - Framework Comparison: comparison.md
+  - Observability: observability.md
   - deepagents: deepagents.md
   - OpenAI Agents SDK: openai-agents.md
   - Microsoft Agent Framework: agent-framework.md

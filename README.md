@@ -46,9 +46,20 @@ integration, evals) — see
 
 ```bash
 uv sync
-uv run python -m deepagents_harness.run
+uv run python -m deepagents_harness.run     # one harness, both patterns
+uv run python compare.py                    # every installed harness, side by side
 uv run pytest -v
 ```
+
+Both print a **structured trace** — harness name, the fan-out owner, the
+runtime-decided subtask count, the gate mechanism, how resume works — in
+one shared vocabulary (`shared/trace.py`), so a run lines up cleanly
+against its vanilla equivalent in
+[`agentic-design-patterns`](https://jithinkk.github.io/agentic-design-patterns/observability/)
+and against the other harnesses. `compare.py` stacks all installed
+harnesses under aligned headers; a missing one is a labelled skip, not an
+error. Add `--otel` (after `uv sync --group otel`) for the same run as an
+OpenTelemetry span tree — see [`docs/observability.md`](docs/observability.md).
 
 Runs fully offline against a small deterministic fake chat model — no API
 key, no network. Point it at a real model with the `LLM_PROVIDER`
@@ -97,8 +108,12 @@ tested with no API key" guarantee:
 2. Implement only the patterns it expresses **natively**, and document the
    non-fits — those explain more than the fits do.
 3. Follow the existing module conventions: `build_agent()` alongside a
-   `run.py` exposing `main(...) -> dict`, and tests under `tests/` that stay
-   green with a plain `uv sync`.
+   `run.py` exposing `main(...) -> dict`, plus
+   `describe_orchestrator_workers(task)` and `describe_human_in_the_loop()`
+   that adapt the framework's result into `shared/trace.py`'s
+   `OrchestratorTrace` / `HitlTrace` (this is what `compare.py` and the
+   `run.py` `__main__` render); and tests under `tests/` that stay green
+   with a plain `uv sync`.
 4. Add the dependency to `pyproject.toml` and regenerate `uv.lock` — CI
    runs `uv sync --locked` and will fail on drift.
 
@@ -106,6 +121,7 @@ tested with no API key" guarantee:
 
 ```
 ai-harnesses/
+├── compare.py                # run one pattern across every installed harness, side by side
 ├── deepagents_harness/       # patterns under LangChain's deepagents
 │   └── tests/
 ├── openai_agents_harness/    # patterns under the OpenAI Agents SDK
@@ -119,8 +135,10 @@ ai-harnesses/
 │   └── tests/
 ├── shared/                   # vendored LLM factory + fake model + basic tools
 │   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness
-│   └── tools/
-├── docs/                     # mkdocs site (Harnesses and Loops essay, one page per harness)
+│   ├── tools/
+│   ├── trace.py              # one trace vocabulary every harness reports itself in
+│   └── obs.py                # opt-in OpenTelemetry wiring for `--otel`
+├── docs/                     # mkdocs site (Harnesses and Loops essay, comparison, observability, one page per harness)
 └── mkdocs.yml
 ```
 

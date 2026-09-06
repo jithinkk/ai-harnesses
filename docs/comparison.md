@@ -6,6 +6,31 @@ apples-to-apples: same task, five different runtimes' worth of machinery
 underneath it. This page is the cross-cutting view; each harness's own
 README goes deeper on its specific trade-offs and non-fits.
 
+## Running it
+
+The table below is also something you can *run*. `compare.py` executes one
+pattern across every installed harness and prints the traces under aligned
+headers, so the difference is a clean read rather than five separate
+scrollbacks:
+
+```bash
+uv run python compare.py                       # both patterns, every installed harness
+uv run python compare.py orchestrator-workers  # just one pattern
+uv run python compare.py human-in-the-loop --otel
+```
+
+A base `uv sync` installs only `deepagents`; the other four sit behind
+conflicting optional groups (`uv sync --group strands`, `--group
+openai-agents`, …), so whichever you have is what gets compared, and the
+rest render as labelled skip lines. Each `*_harness/run.py` still runs on
+its own (`uv run python -m strands_harness.run`) and now prints the same
+structured trace — the harness name, the fan-out owner, the runtime
+subtask count, the gate mechanism, how resume works — so a single run
+lines up against its vanilla equivalent in
+[`agentic-design-patterns`](https://jithinkk.github.io/agentic-design-patterns/observability/).
+`--otel` on either adds the OpenTelemetry span tree — see
+[Observability](observability.md).
+
 | Harness | Runtime substrate | Delegation mechanism (`orchestrator_workers`) | HITL mechanism (`human_in_the_loop`) | Offline fake |
 |---|---|---|---|---|
 | [deepagents](deepagents.md) | Built on LangGraph — returns a real `CompiledStateGraph` | Built-in `task` tool — model calls `task(subagent_type, description)`, subagent runs in a fresh context, returns one summary | `interrupt_on={tool: True}` — LangGraph's `interrupt()` + a checkpointer; pause and resume are separate `invoke()` calls | `BaseChatModel` — `shared/llm/fake.py`'s `FakeChatModel` drops in directly |

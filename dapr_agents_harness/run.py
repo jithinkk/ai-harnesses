@@ -5,6 +5,7 @@ from dapr_agents.workflow.runners.agent import AgentRunner
 
 from dapr_agents_harness.human_in_the_loop import build_agent as build_hitl_agent
 from dapr_agents_harness.orchestrator_workers import build_agent as build_ow_agent
+from shared.trace import HitlTrace, OrchestratorTrace, run_demo, subtasks_from_report
 
 DEFAULT_TASK = "Write a short product report covering pricing, onboarding, and support quality."
 DEFAULT_MESSAGE_TASK = "Send a message to Alice: the report is ready."
@@ -68,21 +69,54 @@ def main(task: str = DEFAULT_TASK) -> dict:
     return run_orchestrator_workers(task)
 
 
+def _as_dict(arguments) -> dict:
+    if isinstance(arguments, dict):
+        return arguments
+    try:
+        return json.loads(arguments)
+    except (TypeError, ValueError):
+        return {"arguments": arguments}
+
+
+def describe_orchestrator_workers(task: str = DEFAULT_TASK) -> OrchestratorTrace:
+    final = run_orchestrator_workers(task)["final_output"]
+    return OrchestratorTrace(
+        harness="dapr-agents",
+        fanout_mechanism="one DurableAgent's `research` tool, called once per subtopic as durable workflow activities",
+        subtasks=subtasks_from_report(final),
+        isolation="each tool call is a separate checkpointed workflow activity",
+        final_report=final,
+    )
+
+
+def describe_human_in_the_loop() -> HitlTrace:
+    outcome = run_human_in_the_loop()
+    pending = outcome.get("pending") or {}
+    final_text = ""
+    if outcome.get("result"):
+        try:
+            final_text = json.loads(outcome["result"])["content"]
+        except (TypeError, ValueError, KeyError):
+            final_text = str(outcome["result"])
+    return HitlTrace(
+        harness="dapr-agents",
+        gate_mechanism="a before_tool_call hook returns RequireApproval(...); the workflow suspends on wait_for_external_event",
+        gated_tool=pending.get("tool_name", "") if outcome["interrupted"] else "",
+        gated_args=_as_dict(pending.get("tool_arguments", {})) if outcome["interrupted"] else {},
+        interrupted=outcome["interrupted"],
+        approved=outcome.get("approved", False),
+        resume_mechanism="raise_approval_event(instance_id, request_id, approved=...) — a durable suspended instance",
+        final_text=final_text,
+        durable=True,
+    )
+
+
 if __name__ == "__main__":
     import sys
 
-    task = " ".join(sys.argv[1:]) or DEFAULT_TASK
-
-    print("=== orchestrator_workers under Dapr Agents ===\n")
-    report = run_orchestrator_workers(task)
-    print(report["final_output"])
-
-    print("\n=== human_in_the_loop under Dapr Agents ===\n")
-    outcome = run_human_in_the_loop()
-    if not outcome["interrupted"]:
-        print("No approval needed for this request.")
-    else:
-        pending = outcome["pending"]
-        print(f"Paused for approval: {pending['tool_name']} {pending['tool_arguments']}")
-        print(f"Auto-{'approved' if outcome['approved'] else 'rejected'} for this demo run.\n")
-        print(json.loads(outcome["result"])["content"] if outcome["result"] else "")
+    run_demo(
+        sys.argv[1:],
+        DEFAULT_TASK,
+        describe_ow=describe_orchestrator_workers,
+        describe_hitl=describe_human_in_the_loop,
+    )
