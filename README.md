@@ -32,6 +32,10 @@ integration, evals) — see
   [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
   — its own `Workflow` executor/edge runtime and its own Magentic
   multi-agent orchestration. Fully offline and tested.
+- [`strands_harness/`](strands_harness/) — the same two patterns,
+  re-expressed in [the Strands Agents SDK](https://github.com/strands-agents/sdk-python)
+  — AWS's code-first agent framework, using its Agents-as-Tools pattern
+  and its `HumanInTheLoop` intervention. Fully offline and tested.
 
 ## Quick start
 
@@ -99,6 +103,8 @@ ai-harnesses/
 ├── openai_agents_harness/    # patterns under the OpenAI Agents SDK
 │   └── tests/
 ├── agent_framework_harness/  # patterns under Microsoft Agent Framework
+│   └── tests/
+├── strands_harness/          # patterns under the Strands Agents SDK
 │   └── tests/
 ├── shared/                   # vendored LLM factory + fake model + basic tools
 │   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness

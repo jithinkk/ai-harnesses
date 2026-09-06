@@ -31,6 +31,9 @@ docs = [
 openai-agents = [
     "openai-agents>=0.22.0",
 ]
+strands = [
+    "strands-agents>=1.54.0",
+]
 
 [tool.uv]
 conflicts = [
@@ -43,8 +46,8 @@ conflicts = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["deepagents_harness", "openai_agents_harness", "agent_framework_harness", "shared"]
+testpaths = ["deepagents_harness", "openai_agents_harness", "agent_framework_harness", "strands_harness", "shared"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["shared*", "deepagents_harness*", "openai_agents_harness*", "agent_framework_harness*"]
+include = ["shared*", "deepagents_harness*", "openai_agents_harness*", "agent_framework_harness*", "strands_harness*"]

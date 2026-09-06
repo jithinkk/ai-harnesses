@@ -53,6 +53,7 @@ nav:
   - deepagents: deepagents.md
   - OpenAI Agents SDK: openai-agents.md
   - Microsoft Agent Framework: agent-framework.md
+  - Strands Agents SDK: strands.md
 
 plugins:
   - search
