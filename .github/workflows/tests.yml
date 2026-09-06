@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  pytest:
+  pytest-core:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,4 +28,30 @@ jobs:
         run: uv sync --group dev --locked
 
       - name: Run tests
-        run: uv run --no-sync pytest -v
+        run: uv run --no-sync pytest deepagents_harness shared -v
+
+  pytest-harness:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: openai-agents
+            path: openai_agents_harness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --group dev --group ${{ matrix.group }} --locked
+
+      - name: Run tests
+        run: uv run --no-sync pytest ${{ matrix.path }} -v

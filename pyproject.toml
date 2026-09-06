@@ -25,10 +25,13 @@ docs = [
     "mkdocs-material>=9.7.7",
     "mkdocs-include-markdown-plugin>=7.3.0",
 ]
+openai-agents = [
+    "openai-agents>=0.22.0",
+]
 
 [tool.pytest.ini_options]
-testpaths = ["deepagents_harness", "shared"]
+testpaths = ["deepagents_harness", "openai_agents_harness", "shared"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["shared*", "deepagents_harness*"]
+include = ["shared*", "deepagents_harness*", "openai_agents_harness*"]

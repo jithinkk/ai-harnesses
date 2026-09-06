@@ -23,6 +23,10 @@ integration, evals) — see
   [deepagents](https://github.com/langchain-ai/deepagents), side by side
   with their vanilla equivalents in `agentic-design-patterns`. Fully
   offline and tested.
+- [`openai_agents_harness/`](openai_agents_harness/) — the same two
+  patterns, re-expressed in [the OpenAI Agents SDK](https://github.com/openai/openai-agents-python)
+  — a different runtime entirely, not built on LangGraph. Fully offline
+  and tested.
 
 ## Quick start
 
@@ -55,9 +59,14 @@ pasted, untestable snippets would be quietly wrong within months — so that
 guidance lives in prose, which can say "check the current docs," and not in
 this repo, which can't be CI-verified.
 
-**Only one framework per harness.** Nobody re-implements a single workflow
-across three frameworks in production; they pick one. A second framework
-would multiply maintenance without changing the lesson.
+**The same two patterns, across every framework here — on purpose.** A
+single harness picking one framework mirrors production, where nobody
+re-implements a workflow across three frameworks; they pick one. A *repo*
+comparing frameworks needs the opposite move: hold the pattern fixed and
+vary the machinery underneath it. `orchestrator_workers` and
+`human_in_the_loop` were chosen because they're the two patterns every
+framework surveyed here expresses natively — see each harness's own
+README for the ones that don't fit, and why.
 
 ## Adding another harness
 
@@ -80,12 +89,14 @@ tested with no API key" guarantee:
 
 ```
 ai-harnesses/
-├── deepagents_harness/   # patterns under LangChain's deepagents
+├── deepagents_harness/       # patterns under LangChain's deepagents
 │   └── tests/
-├── shared/               # vendored LLM factory + fake model + basic tools
-│   ├── llm/
+├── openai_agents_harness/    # patterns under the OpenAI Agents SDK
+│   └── tests/
+├── shared/                   # vendored LLM factory + fake model + basic tools
+│   ├── llm/                  # LangChain-specific -- reused only by deepagents_harness
 │   └── tools/
-├── docs/                 # mkdocs site (Harnesses and Loops essay, deepagents)
+├── docs/                     # mkdocs site (Harnesses and Loops essay, one page per harness)
 └── mkdocs.yml
 ```
 

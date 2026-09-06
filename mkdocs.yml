@@ -51,6 +51,7 @@ nav:
   - Home: index.md
   - Harnesses and Loops: harnesses-and-loops.md
   - deepagents: deepagents.md
+  - OpenAI Agents SDK: openai-agents.md
 
 plugins:
   - search
